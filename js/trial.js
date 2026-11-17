@@ -33,12 +33,6 @@ export function makeTimbre(rng, brightness, family = FAMILIES[Math.floor(rng() *
   };
 }
 
-/** A neutral reference timbre, used to replay a trial without interference. */
-export function plainTimbre() {
-  const harmonics = Array.from({ length: HARMONICS }, (_, i) => (i === 0 ? 1 : i < 6 ? 0.5 / (i + 1) : 0));
-  return { family: 'plain', brightness: 0.3, harmonics, cutoffRatio: 8, q: 0.7, attack: 0.02, envelope: 'sustain', gainDb: 0 };
-}
-
 /**
  * Interference levels:
  *   0 – both tones share one (randomly chosen) timbre

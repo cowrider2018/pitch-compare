@@ -65,13 +65,17 @@ export class Synth {
     this.nodes.push(osc);
   }
 
-  /** Plays [freq1, freq2] with timbres; resolves when finished. */
+  /**
+   * Plays [freq1, freq2] with timbres.
+   * @returns {{ second: Promise<void>, done: Promise<void> }} resolving at the second tone's onset and at the end.
+   */
   playPair(freqs, timbres, { dur = 0.6, gap = 0.35 } = {}) {
     this.stop();
-    const t0 = this.ctx.currentTime + 0.05;
+    const lead = 0.05;
+    const t0 = this.ctx.currentTime + lead;
     this.tone(freqs[0], timbres[0], t0, dur);
     this.tone(freqs[1], timbres[1], t0 + dur + gap, dur);
-    const ms = (0.05 + dur * 2 + gap) * 1000;
-    return new Promise((r) => setTimeout(r, ms));
+    const at = (s) => new Promise((r) => setTimeout(r, s * 1000));
+    return { second: at(lead + dur + gap), done: at(lead + dur * 2 + gap) };
   }
 }

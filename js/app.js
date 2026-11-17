@@ -1,6 +1,6 @@
 import { midiToFreq, formatPitch, formatCents, noteName } from './pitch.js';
 import { createStaircase, updateStaircase, threshold } from './staircase.js';
-import { makeTrial, plainTimbre } from './trial.js';
+import { makeTrial } from './trial.js';
 import { Synth } from './synth.js';
 import { loadSettings, saveSettings, loadSessions, saveSession, clearSessions } from './store.js';
 import { summarize, byOctave } from './stats.js';
@@ -11,21 +11,21 @@ const $$ = (sel) => [...document.querySelectorAll(sel)];
 const synth = new Synth();
 let settings = loadSettings();
 
-const ANSWER_LABEL = { first: '第一個高', same: '一樣', second: '第二個高' };
-const FAMILY_LABEL = { full: '完整泛音', odd: '奇次泛音', formant: '共振峰', plain: '純淨' };
+const FEEDBACK_MS = 700; // how long the answer colours stay before the next trial plays
 
 /** One training round: a staircase plus the trials answered in it. */
 let round = null;
 let trial = null;
-let answered = false;
-let playing = false;
+let canAnswer = false; // true from the second tone's onset until answered
+let busy = false;      // showing feedback; ignore input
+let playToken = 0;     // invalidates callbacks from superseded playbacks
 
 function newRound() {
   round = {
-    startedAt: Date.now(),
     id: Date.now(),
+    interference: settings.interference,
     staircase: createStaircase({ start: settings.startDelta }),
-    results: [], // { m1, m2, dir, delta, answer, response, correct, interference }
+    results: [], // { m1, m2, dir, delta, answer, response, correct }
   };
 }
 
@@ -34,7 +34,6 @@ function newRound() {
 function showView(name) {
   for (const v of $$('.view')) v.hidden = v.id !== `view-${name}`;
   for (const t of $$('.tab')) t.classList.toggle('active', t.dataset.view === name);
-  if (name !== 'train') synth.ctx && synth.stop();
   if (name === 'history') renderHistory();
 }
 
@@ -57,20 +56,23 @@ function renderStats() {
   $('#st-thr').textContent = thr ? fmtDelta(thr) : '–';
 }
 
-function setAnswersEnabled(on) {
-  for (const b of $$('.answers button')) b.disabled = !on;
+function setWaiting(on) {
+  $('.pad').classList.toggle('wait', on);
 }
 
-async function play(plain = false) {
+function play() {
   if (!trial) return;
-  playing = true;
-  $('#btn-replay').disabled = true;
+  const token = ++playToken;
   const freqs = [midiToFreq(trial.m1, settings.a4), midiToFreq(trial.m2, settings.a4)];
-  const timbres = plain ? [plainTimbre(), plainTimbre()] : trial.timbres;
-  await synth.playPair(freqs, timbres, { dur: settings.dur });
-  playing = false;
-  $('#btn-replay').disabled = false;
-  if (!answered) setAnswersEnabled(true);
+  const { second } = synth.playPair(freqs, trial.timbres, { dur: settings.dur });
+  if (!canAnswer) {
+    setWaiting(true);
+    second.then(() => {
+      if (token !== playToken || busy) return;
+      canAnswer = true;
+      setWaiting(false);
+    });
+  }
 }
 
 function nextTrial() {
@@ -78,52 +80,49 @@ function nextTrial() {
     low: settings.low,
     high: settings.high,
     delta: round.staircase.value,
-    interference: settings.interference,
+    interference: round.interference,
   });
-  answered = false;
-  $('#reveal').hidden = true;
-  for (const b of $$('.answers button')) b.classList.remove('correct', 'wrong');
-  setAnswersEnabled(false);
+  canAnswer = false;
+  busy = false;
+  for (const b of $$('.pad button')) b.classList.remove('correct', 'wrong');
   renderStats();
   play();
 }
 
-function timbreText(t) {
-  return `${FAMILY_LABEL[t.family]} · 亮度 ${Math.round(t.brightness * 100)}%${t.envelope === 'pluck' ? ' · 撥奏' : ''}`;
-}
-
-function toneHtml(midi, timbre) {
-  const hz = midiToFreq(midi, settings.a4).toFixed(2);
-  return `${formatPitch(midi)} <span class="sub">${hz} Hz · ${timbreText(timbre)}</span>`;
+/** One-line recap of the previous trial, so each answer still links sound to note names. */
+function lastLine(t, correct) {
+  const mark = correct ? '✓' : '✗';
+  if (t.dir === 0) return `${mark}  同音  ${formatPitch(t.m1)}`;
+  return `${mark}  ${formatPitch(t.m1)} → ${formatPitch(t.m2)}  (${formatCents((t.m2 - t.m1) * 100)})`;
 }
 
 function answer(response) {
-  if (!trial || answered || playing) return;
-  answered = true;
-  setAnswersEnabled(false);
+  if (!trial || !canAnswer || busy) return;
+  canAnswer = false;
+  busy = true;
+  synth.stop();
+  playToken++;
   const correct = response === trial.answer;
 
   round.results.push({
     m1: trial.m1, m2: trial.m2, dir: trial.dir, delta: trial.delta,
-    answer: trial.answer, response, correct, interference: settings.interference,
+    answer: trial.answer, response, correct,
   });
   // Only "different" trials move the staircase; "same" trials measure false alarms.
   if (trial.dir !== 0) updateStaircase(round.staircase, correct);
   persistRound();
 
-  for (const b of $$('.answers button')) {
+  for (const b of $$('[data-answer]')) {
     if (b.dataset.answer === trial.answer) b.classList.add('correct');
     else if (b.dataset.answer === response) b.classList.add('wrong');
   }
-  const v = $('#verdict');
-  v.className = correct ? 'good' : 'bad';
-  v.textContent = correct ? '✓ 正確' : `✗ 答錯 — 正解：${ANSWER_LABEL[trial.answer]}`;
-  $('#rv-1').innerHTML = toneHtml(trial.m1, trial.timbres[0]);
-  $('#rv-2').innerHTML = toneHtml(trial.m2, trial.timbres[1]);
-  $('#rv-d').textContent = trial.dir === 0 ? '0¢（同音高）' : formatCents((trial.m2 - trial.m1) * 100) + '（第二音相對第一音）';
-  $('#reveal').hidden = false;
+  const last = $('#last');
+  last.className = 'last ' + (correct ? 'good' : 'bad');
+  last.textContent = lastLine(trial, correct);
   renderStats();
-  $('#btn-next').focus({ preventScroll: true });
+
+  const r = round;
+  setTimeout(() => { if (round === r) nextTrial(); }, FEEDBACK_MS);
 }
 
 const r4 = (x) => Math.round(x * 1e4) / 1e4;
@@ -136,7 +135,7 @@ function persistRound() {
     a4: settings.a4,
     low: settings.low,
     high: settings.high,
-    interference: settings.interference,
+    interference: round.interference,
     threshold: threshold(round.staircase),
     finalDelta: round.staircase.value,
     results: round.results.map((x) => ({
@@ -147,32 +146,45 @@ function persistRound() {
 
 function endRound() {
   synth.stop();
+  playToken++;
   round = null;
   trial = null;
+  busy = false;
+  canAnswer = false;
   $('#trial-pane').hidden = true;
   $('#start-pane').hidden = false;
-  renderStats();
+  document.body.classList.remove('training');
+  markLastMode();
 }
 
-$('#btn-start').addEventListener('click', async () => {
+function markLastMode() {
+  for (const b of $$('.modes button')) b.classList.toggle('last-used', +b.dataset.level === settings.interference);
+}
+
+async function startRound(level) {
   await synth.unlock();
+  settings = { ...settings, interference: level };
+  saveSettings(settings);
   newRound();
+  $('#last').className = 'last';
+  $('#last').innerHTML = '&nbsp;';
   $('#start-pane').hidden = true;
   $('#trial-pane').hidden = false;
+  document.body.classList.add('training');
   nextTrial();
-});
-$('#btn-replay').addEventListener('click', () => play(false));
-$('#btn-replay-plain').addEventListener('click', () => play(true));
-$('#btn-next').addEventListener('click', () => nextTrial());
+}
+
+for (const b of $$('.modes button')) b.addEventListener('click', () => startRound(+b.dataset.level));
+$('#btn-replay').addEventListener('click', () => { if (!busy) play(); });
 $('#btn-end').addEventListener('click', endRound);
-for (const b of $$('.answers button')) b.addEventListener('click', () => answer(b.dataset.answer));
+for (const b of $$('[data-answer]')) b.addEventListener('click', () => answer(b.dataset.answer));
 
 document.addEventListener('keydown', (e) => {
-  if ($('#view-train').hidden || !trial || e.target.closest('input, select')) return;
-  const key = { ArrowLeft: 'first', ArrowDown: 'same', ArrowRight: 'second', '1': 'first', '2': 'same', '3': 'second' }[e.key];
-  if (key && !answered) { e.preventDefault(); answer(key); }
-  else if (e.key === ' ') { e.preventDefault(); if (!playing) play(false); }
-  else if (e.key === 'Enter' && answered) { e.preventDefault(); nextTrial(); }
+  if ($('#trial-pane').hidden || !trial) return;
+  const key = { ArrowLeft: 'first', '1': 'first', ArrowRight: 'second', '2': 'second', ArrowDown: 'same', s: 'same', '0': 'same' }[e.key];
+  if (key) { e.preventDefault(); answer(key); }
+  else if (e.key === ' ' || e.key === 'ArrowUp') { e.preventDefault(); if (!busy) play(); }
+  else if (e.key === 'Escape') endRound();
 });
 
 // ---------- history ----------
@@ -229,7 +241,6 @@ function fillSettingsForm() {
   form.elements.high.value = settings.high;
   form.elements.dur.value = String(settings.dur);
   form.elements.startDelta.value = settings.startDelta;
-  form.elements.interference.value = String(settings.interference);
 }
 
 $('#settings').addEventListener('change', () => {
@@ -241,7 +252,7 @@ $('#settings').addEventListener('change', () => {
   settings = {
     a4: Math.min(480, Math.max(380, num(f.a4.value, 440))),
     low, high,
-    interference: num(f.interference.value, 1),
+    interference: settings.interference,
     dur: num(f.dur.value, 0.6),
     startDelta: Math.min(200, Math.max(1, num(f.startDelta.value, 50))),
   };
@@ -250,7 +261,7 @@ $('#settings').addEventListener('change', () => {
 });
 
 fillSettingsForm();
-renderStats();
+markLastMode();
 
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('sw.js').catch(() => {});
