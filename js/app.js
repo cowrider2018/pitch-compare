@@ -49,6 +49,7 @@ function renderStats() {
   const r = round?.results ?? [];
   const n = r.length;
   $('#st-n').textContent = n;
+  $('#st-n-unit').textContent = n === 1 ? 'trial' : 'trials';
   $('#st-delta').textContent = round ? fmtDelta(round.staircase.value) : '–';
   const thr = round && threshold(round.staircase);
   $('#st-thr').textContent = thr ? fmtDelta(thr) : '–';
@@ -90,7 +91,7 @@ function nextTrial() {
 /** One-line recap of the previous trial, so each answer still links sound to note names. */
 function lastLine(t, correct) {
   const mark = correct ? '✓' : '✗';
-  if (t.dir === 0) return `${mark}  同音  ${formatPitch(t.m1)}`;
+  if (t.dir === 0) return `${mark}  same  ${formatPitch(t.m1)}`;
   return `${mark}  ${formatPitch(t.m1)} → ${formatPitch(t.m2)}  (${formatCents((t.m2 - t.m1) * 100)})`;
 }
 
@@ -138,7 +139,7 @@ function answer(response) {
     trial.tried.push(response);
     $(`[data-answer="${response}"]`).classList.add('wrong');
     last.className = 'last bad';
-    last.textContent = '✗  再聽一次';
+    last.textContent = '✗  listen again';
     const t = trial;
     setTimeout(() => { if (round === r && trial === t) retryTrial(); }, FEEDBACK_MS);
   }
@@ -209,7 +210,7 @@ document.addEventListener('keydown', (e) => {
 // ---------- history ----------
 
 const pct = (x) => (x == null ? '–' : Math.round(x * 100) + '%');
-const INTERFERENCE_LABEL = ['無', '一般', '陷阱'];
+const INTERFERENCE_LABEL = ['None', 'Normal', 'Traps'];
 
 function renderHistory() {
   const sessions = loadSessions();
@@ -240,7 +241,7 @@ function renderHistory() {
 }
 
 $('#btn-clear').addEventListener('click', () => {
-  if (confirm('確定清除所有練習紀錄？此動作無法復原。')) {
+  if (confirm('Clear all training records? This cannot be undone.')) {
     clearSessions();
     renderHistory();
   }

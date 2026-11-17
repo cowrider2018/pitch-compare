@@ -1,8 +1,8 @@
 {
-  "name": "Pitch – 音高辨識訓練",
+  "name": "Pitch – Pitch Discrimination Trainer",
   "short_name": "Pitch",
-  "description": "離線音高辨識訓練：兩個相近的音，判斷哪個高或一樣，含音色干擾。",
-  "lang": "zh-Hant",
+  "description": "Offline pitch discrimination training: two close pitches, which is higher or are they the same, with timbre interference.",
+  "lang": "en",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

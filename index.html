@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="zh-Hant">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -17,36 +17,36 @@
   <header class="bar">
     <h1>Pitch</h1>
     <nav>
-      <button data-view="train" class="tab active">練習</button>
-      <button data-view="history" class="tab">紀錄</button>
-      <button data-view="settings" class="tab">設定</button>
+      <button data-view="train" class="tab active">Train</button>
+      <button data-view="history" class="tab">History</button>
+      <button data-view="settings" class="tab">Settings</button>
     </nav>
   </header>
 
   <main>
     <section id="view-train" class="view">
       <div id="start-pane" class="pane">
-        <p class="hint">兩個音依序播放，判斷哪個比較高，或是一樣。選擇干擾程度即開始。</p>
+        <p class="hint">Two tones play in turn. Decide which is higher, or whether they are the same. Pick an interference level to start.</p>
         <div class="modes">
-          <button data-level="0"><b>無干擾</b><span>兩音同一個音色</span></button>
-          <button data-level="1"><b>一般干擾</b><span>兩音各自隨機音色、音量微差</span></button>
-          <button data-level="2"><b>陷阱</b><span>較高的音多半較暗，同音題亮度差很大</span></button>
+          <button data-level="0"><b>No interference</b><span>Both tones share one timbre</span></button>
+          <button data-level="1"><b>Interference</b><span>Each tone gets a random timbre and a slight level change</span></button>
+          <button data-level="2"><b>Traps</b><span>The higher tone is usually darker; same-pitch pairs differ sharply in brightness</span></button>
         </div>
       </div>
 
       <div id="trial-pane" hidden>
         <div class="topline">
           <div class="mini">
-            <span><b id="st-n">0</b>題</span>
-            <span>差 <b id="st-delta">–</b></span>
-            <span>閾 <b id="st-thr">–</b></span>
+            <span><b id="st-n">0</b> <span id="st-n-unit">trials</span></span>
+            <span>Δ <b id="st-delta">–</b></span>
+            <span>Threshold <b id="st-thr">–</b></span>
           </div>
         </div>
         <p id="last" class="last">&nbsp;</p>
         <div class="pad">
           <div class="again-row">
             <button id="btn-replay" class="again">AGAIN<kbd>Space</kbd></button>
-            <button id="btn-end" class="end" aria-label="結束本輪">✕<kbd>Esc</kbd></button>
+            <button id="btn-end" class="end" aria-label="End round">✕<kbd>Esc</kbd></button>
           </div>
           <div class="pair">
             <button data-answer="first">1<kbd>←</kbd></button>
@@ -58,47 +58,47 @@
     </section>
 
     <section id="view-history" class="view" hidden>
-      <h2>最近各輪</h2>
+      <h2>Recent rounds</h2>
       <div class="table-wrap">
         <table id="tbl-sessions">
-          <thead><tr><th>日期</th><th>題數</th><th>正確率</th><th>同音誤判</th><th>閾值</th><th>干擾</th></tr></thead>
+          <thead><tr><th>Date</th><th>Trials</th><th>Correct</th><th>Same FA</th><th>Threshold</th><th>Mode</th></tr></thead>
           <tbody></tbody>
         </table>
       </div>
-      <p id="no-sessions" class="hint">還沒有紀錄。</p>
+      <p id="no-sessions" class="hint">No records yet.</p>
 
-      <h2>分音區（全部紀錄）</h2>
+      <h2>By octave (all records)</h2>
       <div class="table-wrap">
         <table id="tbl-octaves">
-          <thead><tr><th>音區</th><th>不同題</th><th>正確率</th><th>平均差距</th><th>同音誤判</th></tr></thead>
+          <thead><tr><th>Octave</th><th>Diff trials</th><th>Correct</th><th>Mean Δ</th><th>Same FA</th></tr></thead>
           <tbody></tbody>
         </table>
       </div>
-      <p class="hint">閾值是自適應難度收斂的差距（約 71% 答對）。平均差距是該音區題目差距的幾何平均。</p>
-      <button id="btn-clear" class="link">清除所有紀錄</button>
+      <p class="hint">Threshold: the pitch difference the adaptive staircase converges to (about 71% correct). Mean Δ: geometric mean of the differences heard in that octave. Same FA: share of same-pitch pairs answered as different. Only first attempts count.</p>
+      <button id="btn-clear" class="link">Clear all records</button>
     </section>
 
     <section id="view-settings" class="view" hidden>
       <form id="settings" class="form">
-        <label>標準音 A4 (Hz)
+        <label>Reference A4 (Hz)
           <input name="a4" type="number" min="380" max="480" step="0.1" inputmode="decimal">
         </label>
         <div class="row2">
-          <label>音域下限<select name="low"></select></label>
-          <label>音域上限<select name="high"></select></label>
+          <label>Range low<select name="low"></select></label>
+          <label>Range high<select name="high"></select></label>
         </div>
-        <label>每音長度
+        <label>Tone length
           <select name="dur">
-            <option value="0.35">0.35 秒</option>
-            <option value="0.6">0.6 秒</option>
-            <option value="0.9">0.9 秒</option>
-            <option value="1.4">1.4 秒</option>
+            <option value="0.35">0.35 s</option>
+            <option value="0.6">0.6 s</option>
+            <option value="0.9">0.9 s</option>
+            <option value="1.4">1.4 s</option>
           </select>
         </label>
-        <label>起始差距 (cents)
+        <label>Starting difference (cents)
           <input name="startDelta" type="number" min="1" max="200" step="1" inputmode="numeric">
         </label>
-        <p class="hint">基準音在音域內連續隨機，不對齊音名。音色干擾在練習頁開始時選擇。設定會自動儲存；起始差距從下一輪開始生效。</p>
+        <p class="hint">The base pitch is random anywhere in the range, not snapped to note names. Interference is chosen when starting a round. Settings save automatically; the starting difference applies from the next round.</p>
       </form>
     </section>
   </main>
