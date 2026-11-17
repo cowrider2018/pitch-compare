@@ -12,6 +12,7 @@
     <h1>Pitch</h1>
     <nav>
       <button data-view="train" class="tab active">練習</button>
+      <button data-view="history" class="tab">紀錄</button>
       <button data-view="settings" class="tab">設定</button>
     </nav>
   </header>
@@ -53,6 +54,27 @@
 
         <button id="btn-end" class="link">結束本輪</button>
       </div>
+    </section>
+
+    <section id="view-history" class="view" hidden>
+      <h2>最近各輪</h2>
+      <div class="table-wrap">
+        <table id="tbl-sessions">
+          <thead><tr><th>日期</th><th>題數</th><th>正確率</th><th>同音誤判</th><th>閾值</th><th>干擾</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <p id="no-sessions" class="hint">還沒有紀錄。</p>
+
+      <h2>分音區（全部紀錄）</h2>
+      <div class="table-wrap">
+        <table id="tbl-octaves">
+          <thead><tr><th>音區</th><th>不同題</th><th>正確率</th><th>平均差距</th><th>同音誤判</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <p class="hint">閾值是自適應難度收斂的差距（約 71% 答對）。平均差距是該音區題目差距的幾何平均。</p>
+      <button id="btn-clear" class="link">清除所有紀錄</button>
     </section>
 
     <section id="view-settings" class="view" hidden>

@@ -2,7 +2,8 @@ import { midiToFreq, formatPitch, formatCents, noteName } from './pitch.js';
 import { createStaircase, updateStaircase, threshold } from './staircase.js';
 import { makeTrial, plainTimbre } from './trial.js';
 import { Synth } from './synth.js';
-import { loadSettings, saveSettings } from './store.js';
+import { loadSettings, saveSettings, loadSessions, saveSession, clearSessions } from './store.js';
+import { summarize, byOctave } from './stats.js';
 
 const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => [...document.querySelectorAll(sel)];
@@ -22,6 +23,7 @@ let playing = false;
 function newRound() {
   round = {
     startedAt: Date.now(),
+    id: Date.now(),
     staircase: createStaircase({ start: settings.startDelta }),
     results: [], // { m1, m2, dir, delta, answer, response, correct, interference }
   };
@@ -33,6 +35,7 @@ function showView(name) {
   for (const v of $$('.view')) v.hidden = v.id !== `view-${name}`;
   for (const t of $$('.tab')) t.classList.toggle('active', t.dataset.view === name);
   if (name !== 'train') synth.ctx && synth.stop();
+  if (name === 'history') renderHistory();
 }
 
 for (const t of $$('.tab')) t.addEventListener('click', () => showView(t.dataset.view));
@@ -106,6 +109,7 @@ function answer(response) {
   });
   // Only "different" trials move the staircase; "same" trials measure false alarms.
   if (trial.dir !== 0) updateStaircase(round.staircase, correct);
+  persistRound();
 
   for (const b of $$('.answers button')) {
     if (b.dataset.answer === trial.answer) b.classList.add('correct');
@@ -120,6 +124,25 @@ function answer(response) {
   $('#reveal').hidden = false;
   renderStats();
   $('#btn-next').focus({ preventScroll: true });
+}
+
+const r4 = (x) => Math.round(x * 1e4) / 1e4;
+
+/** Saved after every answer so closing the app never loses a round. */
+function persistRound() {
+  if (!round || !round.results.length) return;
+  saveSession({
+    id: round.id,
+    a4: settings.a4,
+    low: settings.low,
+    high: settings.high,
+    interference: settings.interference,
+    threshold: threshold(round.staircase),
+    finalDelta: round.staircase.value,
+    results: round.results.map((x) => ({
+      m1: r4(x.m1), m2: r4(x.m2), dir: x.dir, delta: r4(x.delta), response: x.response, correct: x.correct,
+    })),
+  });
 }
 
 function endRound() {
@@ -150,6 +173,46 @@ document.addEventListener('keydown', (e) => {
   if (key && !answered) { e.preventDefault(); answer(key); }
   else if (e.key === ' ') { e.preventDefault(); if (!playing) play(false); }
   else if (e.key === 'Enter' && answered) { e.preventDefault(); nextTrial(); }
+});
+
+// ---------- history ----------
+
+const pct = (x) => (x == null ? '–' : Math.round(x * 100) + '%');
+const INTERFERENCE_LABEL = ['無', '一般', '陷阱'];
+
+function renderHistory() {
+  const sessions = loadSessions();
+  const tbody = $('#tbl-sessions tbody');
+  tbody.innerHTML = '';
+  for (const s of sessions.slice(-30).reverse()) {
+    const sum = summarize(s);
+    const d = new Date(s.id);
+    const date = `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+    const tr = tbody.insertRow();
+    for (const v of [date, sum.n, pct(sum.accuracy), pct(sum.falseAlarm), s.threshold ? fmtDelta(s.threshold) : '–', INTERFERENCE_LABEL[s.interference] ?? '–']) {
+      tr.insertCell().textContent = v;
+    }
+  }
+  $('#no-sessions').hidden = sessions.length > 0;
+  $('#tbl-sessions').closest('.table-wrap').hidden = sessions.length === 0;
+
+  const ob = $('#tbl-octaves tbody');
+  ob.innerHTML = '';
+  const rows = byOctave(sessions);
+  for (const r of rows) {
+    const tr = ob.insertRow();
+    for (const v of [r.label, r.diffN, pct(r.diffAcc), r.meanDelta ? fmtDelta(r.meanDelta) : '–', pct(r.falseAlarm)]) {
+      tr.insertCell().textContent = v;
+    }
+  }
+  $('#tbl-octaves').closest('.table-wrap').hidden = rows.length === 0;
+}
+
+$('#btn-clear').addEventListener('click', () => {
+  if (confirm('確定清除所有練習紀錄？此動作無法復原。')) {
+    clearSessions();
+    renderHistory();
+  }
 });
 
 // ---------- settings ----------

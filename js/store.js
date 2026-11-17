@@ -31,3 +31,25 @@ export function loadSettings() {
 export function saveSettings(s) {
   write(KEY_SETTINGS, s);
 }
+
+// ---------- sessions ----------
+
+const KEY_SESSIONS = 'pitch.sessions.v1';
+const MAX_SESSIONS = 500;
+
+export function loadSessions() {
+  const s = read(KEY_SESSIONS, []);
+  return Array.isArray(s) ? s : [];
+}
+
+/** Insert or replace by id; keeps the newest MAX_SESSIONS. */
+export function saveSession(session) {
+  const all = loadSessions().filter((s) => s.id !== session.id);
+  all.push(session);
+  all.sort((a, b) => a.id - b.id);
+  write(KEY_SESSIONS, all.slice(-MAX_SESSIONS));
+}
+
+export function clearSessions() {
+  write(KEY_SESSIONS, []);
+}
