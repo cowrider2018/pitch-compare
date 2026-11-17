@@ -1,6 +1,20 @@
 // Pure summaries over stored sessions.
 import { noteName } from './pitch.js';
 
+/** Training time: from the round's start to its last answer (idle time after that doesn't count). */
+export function durationMs(session) {
+  return session.startedAt && session.endedAt ? Math.max(0, session.endedAt - session.startedAt) : null;
+}
+
+/** 754000 → "12:34", 3723000 → "1:02:03". */
+export function formatDuration(ms) {
+  if (ms == null) return '–';
+  const t = Math.round(ms / 1000);
+  const h = Math.floor(t / 3600), m = Math.floor((t % 3600) / 60), s = t % 60;
+  const ss = String(s).padStart(2, '0');
+  return h ? `${h}:${String(m).padStart(2, '0')}:${ss}` : `${m}:${ss}`;
+}
+
 /** @param session {{ results: {dir:number, correct:boolean}[] }} */
 export function summarize(session) {
   const r = session.results;

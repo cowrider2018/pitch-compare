@@ -3,7 +3,7 @@ import { createStaircase, updateStaircase, threshold } from './staircase.js';
 import { makeTrial } from './trial.js';
 import { Synth } from './synth.js';
 import { loadSettings, saveSettings, loadSessions, saveSession, clearSessions } from './store.js';
-import { summarize, byOctave } from './stats.js';
+import { summarize, byOctave, durationMs, formatDuration } from './stats.js';
 
 const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => [...document.querySelectorAll(sel)];
@@ -112,6 +112,7 @@ function answer(response) {
   playToken++;
   const correct = response === trial.answer;
 
+  round.lastAnswerAt = Date.now();
   if (!trial.tried) {
     // Only the first attempt counts for stats and difficulty; retries are practice.
     trial.tried = [];
@@ -153,6 +154,8 @@ function persistRound() {
   if (!round || !round.results.length) return;
   saveSession({
     id: round.id,
+    startedAt: round.id,
+    endedAt: round.lastAnswerAt,
     a4: settings.a4,
     low: settings.low,
     high: settings.high,
@@ -223,7 +226,7 @@ function renderHistory() {
     const d = new Date(s.id);
     const date = `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
     const tr = tbody.insertRow();
-    for (const v of [date, sum.n, pct(sum.accuracy), pct(sum.falseAlarm), s.threshold ? fmtDelta(s.threshold) : '–', MODE_LABEL[s.interference] ?? '–']) {
+    for (const v of [date, formatDuration(durationMs(s)), sum.n, pct(sum.accuracy), pct(sum.falseAlarm), s.threshold ? fmtDelta(s.threshold) : '–', MODE_LABEL[s.interference] ?? '–']) {
       tr.insertCell().textContent = v;
     }
   }

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { summarize, byOctave } from '../js/stats.js';
+import { summarize, byOctave, durationMs, formatDuration } from '../js/stats.js';
 
 const results = [
   { m1: 60.1, m2: 60.2, dir: 1, delta: 10, correct: true },
@@ -28,4 +28,13 @@ test('byOctave groups by the octave of the pair', () => {
   assert.equal(rows[0].falseAlarm, 1);
   assert.equal(rows[1].label, 'C5–B5');
   assert.equal(rows[1].falseAlarm, 0);
+});
+
+test('duration runs from start to last answer', () => {
+  assert.equal(durationMs({ startedAt: 1000, endedAt: 755000 }), 754000);
+  assert.equal(durationMs({ id: 1 }), null);
+  assert.equal(formatDuration(754000), '12:34');
+  assert.equal(formatDuration(3723000), '1:02:03');
+  assert.equal(formatDuration(4000), '0:04');
+  assert.equal(formatDuration(null), '–');
 });
