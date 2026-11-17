@@ -48,9 +48,7 @@ function fmtDelta(c) {
 function renderStats() {
   const r = round?.results ?? [];
   const n = r.length;
-  const correct = r.filter((x) => x.correct).length;
   $('#st-n').textContent = n;
-  $('#st-acc').textContent = n ? Math.round((correct / n) * 100) + '%' : '–';
   $('#st-delta').textContent = round ? fmtDelta(round.staircase.value) : '–';
   const thr = round && threshold(round.staircase);
   $('#st-thr').textContent = thr ? fmtDelta(thr) : '–';
