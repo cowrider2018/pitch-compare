@@ -96,33 +96,54 @@ function lastLine(t, correct) {
   return `${mark}  ${formatPitch(t.m1)} → ${formatPitch(t.m2)}  (${formatCents((t.m2 - t.m1) * 100)})`;
 }
 
+/** Same trial again after a wrong answer: same pitches and timbres; tried answers stay marked. */
+function retryTrial() {
+  canAnswer = false;
+  busy = false;
+  play();
+}
+
 function answer(response) {
   if (!trial || !canAnswer || busy) return;
+  if (trial.tried?.includes(response)) return; // already ruled out on this trial
   canAnswer = false;
   busy = true;
   synth.stop();
   playToken++;
   const correct = response === trial.answer;
 
-  round.results.push({
-    m1: trial.m1, m2: trial.m2, dir: trial.dir, delta: trial.delta,
-    answer: trial.answer, response, correct,
-  });
-  // Only "different" trials move the staircase; "same" trials measure false alarms.
-  if (trial.dir !== 0) updateStaircase(round.staircase, correct);
-  persistRound();
-
-  for (const b of $$('[data-answer]')) {
-    if (b.dataset.answer === trial.answer) b.classList.add('correct');
-    else if (b.dataset.answer === response) b.classList.add('wrong');
+  if (!trial.tried) {
+    // Only the first attempt counts for stats and difficulty; retries are practice.
+    trial.tried = [];
+    trial.result = {
+      m1: trial.m1, m2: trial.m2, dir: trial.dir, delta: trial.delta,
+      answer: trial.answer, response, correct, tries: 1,
+    };
+    round.results.push(trial.result);
+    // Only "different" trials move the staircase; "same" trials measure false alarms.
+    if (trial.dir !== 0) updateStaircase(round.staircase, correct);
+  } else {
+    trial.result.tries++;
   }
-  const last = $('#last');
-  last.className = 'last ' + (correct ? 'good' : 'bad');
-  last.textContent = lastLine(trial, correct);
+  persistRound();
   renderStats();
 
+  const last = $('#last');
   const r = round;
-  setTimeout(() => { if (round === r) nextTrial(); }, FEEDBACK_MS);
+  if (correct) {
+    $(`[data-answer="${response}"]`).classList.add('correct');
+    last.className = 'last good';
+    last.textContent = lastLine(trial, true);
+    setTimeout(() => { if (round === r) nextTrial(); }, FEEDBACK_MS);
+  } else {
+    // Don't reveal the answer or the pitches: the same trial plays again.
+    trial.tried.push(response);
+    $(`[data-answer="${response}"]`).classList.add('wrong');
+    last.className = 'last bad';
+    last.textContent = '✗  再聽一次';
+    const t = trial;
+    setTimeout(() => { if (round === r && trial === t) retryTrial(); }, FEEDBACK_MS);
+  }
 }
 
 const r4 = (x) => Math.round(x * 1e4) / 1e4;
@@ -139,7 +160,7 @@ function persistRound() {
     threshold: threshold(round.staircase),
     finalDelta: round.staircase.value,
     results: round.results.map((x) => ({
-      m1: r4(x.m1), m2: r4(x.m2), dir: x.dir, delta: r4(x.delta), response: x.response, correct: x.correct,
+      m1: r4(x.m1), m2: r4(x.m2), dir: x.dir, delta: r4(x.delta), response: x.response, correct: x.correct, tries: x.tries,
     })),
   });
 }
