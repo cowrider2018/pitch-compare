@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#1b1d23">
+  <title>Pitch</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="bar">
+    <h1>Pitch</h1>
+    <nav>
+      <button data-view="train" class="tab active">練習</button>
+      <button data-view="settings" class="tab">設定</button>
+    </nav>
+  </header>
+
+  <main>
+    <section id="view-train" class="view">
+      <div class="stats">
+        <div><span id="st-n">0</span><small>題數</small></div>
+        <div><span id="st-acc">–</span><small>正確率</small></div>
+        <div><span id="st-delta">–</span><small>目前差距</small></div>
+        <div><span id="st-thr">–</span><small>閾值估計</small></div>
+      </div>
+
+      <div id="start-pane" class="pane center">
+        <p class="hint">兩個音會依序播放。判斷哪一個比較高，或是一樣高。</p>
+        <button id="btn-start" class="primary big">開始</button>
+      </div>
+
+      <div id="trial-pane" class="pane" hidden>
+        <button id="btn-replay" class="ghost wide">▶ 重聽<kbd>Space</kbd></button>
+        <div class="answers">
+          <button data-answer="first">第一個高<kbd>←</kbd></button>
+          <button data-answer="same">一樣<kbd>↓</kbd></button>
+          <button data-answer="second">第二個高<kbd>→</kbd></button>
+        </div>
+
+        <div id="reveal" hidden>
+          <p id="verdict"></p>
+          <dl class="tones">
+            <dt>第一音</dt><dd id="rv-1"></dd>
+            <dt>第二音</dt><dd id="rv-2"></dd>
+            <dt>差距</dt><dd id="rv-d"></dd>
+          </dl>
+          <div class="row">
+            <button id="btn-replay-plain" class="ghost">無干擾重聽</button>
+            <button id="btn-next" class="primary">下一題<kbd>Enter</kbd></button>
+          </div>
+        </div>
+
+        <button id="btn-end" class="link">結束本輪</button>
+      </div>
+    </section>
+
+    <section id="view-settings" class="view" hidden>
+      <form id="settings" class="form">
+        <label>標準音 A4 (Hz)
+          <input name="a4" type="number" min="380" max="480" step="0.1" inputmode="decimal">
+        </label>
+        <div class="row2">
+          <label>音域下限<select name="low"></select></label>
+          <label>音域上限<select name="high"></select></label>
+        </div>
+        <fieldset>
+          <legend>音色干擾</legend>
+          <label class="radio"><input type="radio" name="interference" value="0"> 無：兩音同音色</label>
+          <label class="radio"><input type="radio" name="interference" value="1"> 一般：兩音各自隨機音色、音量微差</label>
+          <label class="radio"><input type="radio" name="interference" value="2"> 陷阱：較高的音多半較暗，同音題亮度差很大</label>
+        </fieldset>
+        <label>每音長度
+          <select name="dur">
+            <option value="0.35">0.35 秒</option>
+            <option value="0.6">0.6 秒</option>
+            <option value="0.9">0.9 秒</option>
+            <option value="1.4">1.4 秒</option>
+          </select>
+        </label>
+        <label>起始差距 (cents)
+          <input name="startDelta" type="number" min="1" max="200" step="1" inputmode="numeric">
+        </label>
+        <p class="hint">基準音在音域內連續隨機，不對齊音名。設定會自動儲存；起始差距從下一輪開始生效。</p>
+      </form>
+    </section>
+  </main>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
