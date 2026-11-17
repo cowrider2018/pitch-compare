@@ -10,6 +10,7 @@ const $$ = (sel) => [...document.querySelectorAll(sel)];
 
 const synth = new Synth();
 let settings = loadSettings();
+if (settings.interference === 2) settings.interference = 1; // the retired "traps" mode
 
 const FEEDBACK_MS = 700; // how long the answer colours stay before the next trial plays
 
@@ -116,7 +117,7 @@ function answer(response) {
     trial.tried = [];
     trial.result = {
       m1: trial.m1, m2: trial.m2, dir: trial.dir, delta: trial.delta,
-      answer: trial.answer, response, correct, tries: 1,
+      answer: trial.answer, response, correct, tries: 1, amount: trial.amount,
     };
     round.results.push(trial.result);
     // Only "different" trials move the staircase; "same" trials measure false alarms.
@@ -160,6 +161,7 @@ function persistRound() {
     finalDelta: round.staircase.value,
     results: round.results.map((x) => ({
       m1: r4(x.m1), m2: r4(x.m2), dir: x.dir, delta: r4(x.delta), response: x.response, correct: x.correct, tries: x.tries,
+      ...(x.amount != null && { amount: Math.round(x.amount * 100) / 100 }),
     })),
   });
 }
@@ -210,7 +212,7 @@ document.addEventListener('keydown', (e) => {
 // ---------- history ----------
 
 const pct = (x) => (x == null ? '–' : Math.round(x * 100) + '%');
-const INTERFERENCE_LABEL = ['None', 'Normal', 'Traps'];
+const MODE_LABEL = { 0: 'None', 1: 'Normal', 2: 'Traps (retired)', 3: 'Variable' };
 
 function renderHistory() {
   const sessions = loadSessions();
@@ -221,7 +223,7 @@ function renderHistory() {
     const d = new Date(s.id);
     const date = `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
     const tr = tbody.insertRow();
-    for (const v of [date, sum.n, pct(sum.accuracy), pct(sum.falseAlarm), s.threshold ? fmtDelta(s.threshold) : '–', INTERFERENCE_LABEL[s.interference] ?? '–']) {
+    for (const v of [date, sum.n, pct(sum.accuracy), pct(sum.falseAlarm), s.threshold ? fmtDelta(s.threshold) : '–', MODE_LABEL[s.interference] ?? '–']) {
       tr.insertCell().textContent = v;
     }
   }

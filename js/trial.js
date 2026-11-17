@@ -34,41 +34,64 @@ export function makeTimbre(rng, brightness, family = FAMILIES[Math.floor(rng() *
 }
 
 /**
- * Interference levels:
+ * Modes (stored as `interference`):
  *   0 – both tones share one (randomly chosen) timbre
  *   1 – independent random timbres, ±2 dB level jitter
- *   2 – traps: brightness usually contradicts pitch direction; "same" trials get a large brightness gap
- * dir: +1 if the second tone is higher, -1 if lower, 0 if same.
+ *   2 – retired ("traps": brightness opposed pitch direction, which trained a reverse cue).
+ *       Kept only so old records stay labelled.
+ *   3 – variable: each trial draws an interference amount s ∈ [0,1], from identical timbres (s=0)
+ *       to severe differences (s=1)
+ * No mode ties timbre to which tone is higher.
  */
-export function makeTimbrePair(rng, level, dir) {
-  if (level <= 0) {
-    const t = makeTimbre(rng, rng());
-    return [t, t];
+export const MODES = { PLAIN: 0, TIMBRE: 1, VARIABLE: 3 };
+
+/**
+ * Two timbres differing by amount s ∈ [0,1]. Tone b is tone a blended toward an independent target
+ * timbre by s; the target's brightness is pushed to the far end from a's as s grows. Level difference
+ * up to ±5 dB at s=1. The pair is shuffled so neither tone is systematically the reference.
+ */
+export function makeVariablePair(rng, s) {
+  const ba = rng();
+  const far = ba < 0.5 ? 0.7 + rng() * 0.3 : rng() * 0.3;
+  const a = makeTimbre(rng, ba);
+  let family = FAMILIES[Math.floor(rng() * FAMILIES.length)];
+  if (s > 0.66 && family === a.family) family = FAMILIES[(FAMILIES.indexOf(family) + 1) % FAMILIES.length];
+  const t = makeTimbre(rng, lerp(rng(), far, s), family);
+  const b = {
+    family: s < 0.5 ? a.family : t.family,
+    brightness: lerp(a.brightness, t.brightness, s),
+    harmonics: a.harmonics.map((h, n) => lerp(h, t.harmonics[n], s)),
+    cutoffRatio: a.cutoffRatio * Math.pow(t.cutoffRatio / a.cutoffRatio, s), // geometric blend
+    q: lerp(a.q, t.q, s),
+    attack: lerp(a.attack, t.attack, s),
+    envelope: rng() < s ? t.envelope : a.envelope,
+    gainDb: 0,
+  };
+  const d = s * 5 * (rng() * 2 - 1);
+  a.gainDb = -d / 2;
+  b.gainDb = d / 2;
+  return rng() < 0.5 ? [a, b] : [b, a];
+}
+
+/** @returns {{ timbres: [object, object], amount: number }} amount = how much the timbres differ (0–1). */
+export function makeTimbrePair(rng, level) {
+  if (level === MODES.VARIABLE) {
+    const amount = rng();
+    return { timbres: makeVariablePair(rng, amount), amount };
   }
-  if (level === 1) {
+  if (level === MODES.TIMBRE) {
     const a = makeTimbre(rng, rng()), b = makeTimbre(rng, rng());
     a.gainDb = (rng() * 2 - 1) * 2;
     b.gainDb = (rng() * 2 - 1) * 2;
-    return [a, b];
+    return { timbres: [a, b], amount: null };
   }
-  const dark = () => rng() * 0.3, bright = () => 0.7 + rng() * 0.3;
-  let b1, b2;
-  if (dir === 0) {
-    [b1, b2] = rng() < 0.5 ? [dark(), bright()] : [bright(), dark()];
-  } else if (rng() < 0.75) {
-    // the higher tone is darker
-    [b1, b2] = dir > 0 ? [bright(), dark()] : [dark(), bright()];
-  } else {
-    b1 = rng(); b2 = rng();
-  }
-  const a = makeTimbre(rng, b1), b = makeTimbre(rng, b2);
-  a.gainDb = (rng() * 2 - 1) * 3;
-  b.gainDb = (rng() * 2 - 1) * 3;
-  return [a, b];
+  const t = makeTimbre(rng, rng());
+  return { timbres: [t, t], amount: 0 };
 }
 
 /**
- * @returns {{ m1:number, m2:number, dir:-1|0|1, delta:number, answer:'first'|'same'|'second', timbres:[object,object] }}
+ * @returns {{ m1:number, m2:number, dir:-1|0|1, delta:number, answer:'first'|'same'|'second',
+ *             timbres:[object,object], amount:number|null }}
  * m1/m2 are fractional MIDI pitches. The pair is centred on a uniformly random base in [low, high].
  */
 export function makeTrial({ rng = Math.random, low, high, delta, pSame = 1 / 3, interference = 1 }) {
@@ -81,6 +104,6 @@ export function makeTrial({ rng = Math.random, low, high, delta, pSame = 1 / 3, 
     m1, m2, dir,
     delta: dir === 0 ? 0 : delta,
     answer: dir === 0 ? 'same' : dir > 0 ? 'second' : 'first',
-    timbres: makeTimbrePair(rng, interference, dir),
+    ...makeTimbrePair(rng, interference),
   };
 }
