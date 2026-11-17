@@ -104,10 +104,9 @@ tbody tr + tr td { border-top: 1px solid var(--line); }
   padding: calc(8px + env(safe-area-inset-top)) 12px calc(12px + env(safe-area-inset-bottom));
 }
 body.training { overflow: hidden; }
-.topline { display: flex; align-items: center; gap: 8px; }
+.topline { display: flex; align-items: center; min-height: 28px; }
 .mini { flex: 1; display: flex; gap: 14px; color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
 .mini b { color: var(--text); font-weight: 600; margin: 0 2px; }
-.end { background: none; border: 0; color: var(--muted); font-size: 20px; padding: 6px 10px; line-height: 1; }
 .last {
   margin: 4px 0 8px; min-height: 1.5em; font-size: 14px; text-align: center;
   font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
@@ -117,6 +116,10 @@ body.training { overflow: hidden; }
 
 /* AGAIN : 1|2 : SAME = 1 : 4 : 2 */
 .pad { flex: 1; min-height: 0; display: grid; grid-template-rows: minmax(0, 1fr) minmax(0, 4fr) minmax(0, 2fr); gap: 10px; }
+/* AGAIN fills the row; the end button is a square at the right */
+.pad .again-row { display: flex; gap: 10px; min-height: 0; }
+.pad .again-row .again { flex: 1; min-width: 0; }
+.pad .again-row .end { height: 100%; aspect-ratio: 1; flex: none; color: var(--muted); font-size: 24px; font-weight: 400; letter-spacing: 0; }
 .pad .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; min-height: 0; }
 .pad .pair button { font-size: 64px; font-weight: 700; }
 .pad button {
