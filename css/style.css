@@ -133,8 +133,8 @@ body.training { overflow: hidden; }
 .layout-switch[aria-checked="true"] .knob { transform: translateX(22px); }
 .layout-switch[aria-checked="true"] .glyph { clip-path: inset(50% 0 0 0); }
 
-/* AGAIN : 1|2 : SAME = 1 : 4 : 2, over the full height or the bottom half */
-.pad { flex: 1; min-height: 0; display: grid; grid-template-rows: minmax(0, 1fr) minmax(0, 4fr) minmax(0, 2fr); gap: 10px; }
+/* AGAIN : 1|2 : SAME = 1.5 : 4 : 2, over the full height or the bottom half */
+.pad { flex: 1; min-height: 0; display: grid; grid-template-rows: minmax(0, 1.5fr) minmax(0, 4fr) minmax(0, 2fr); gap: 10px; }
 #trial-pane.half .pad { flex: 0 0 50%; margin-top: auto; }
 /* AGAIN fills the row; the end button is a square at the right */
 .pad .again-row { display: flex; gap: 10px; min-height: 0; }

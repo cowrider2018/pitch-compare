@@ -1,5 +1,5 @@
 // Offline cache. Bump VERSION whenever any file in ASSETS changes so clients pick up the update.
-const VERSION = 'pitch-v11';
+const VERSION = 'pitch-v12';
 const ASSETS = [
   './',
   'index.html',
