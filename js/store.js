@@ -9,6 +9,7 @@ export const DEFAULT_SETTINGS = {
   interference: 1,  // 0 none, 1 random timbres, 2 traps
   dur: 0.6,         // seconds per tone
   startDelta: 50,   // cents
+  halfPad: true,    // training pad in the bottom half of the screen
 };
 
 function read(key, fallback) {

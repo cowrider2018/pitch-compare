@@ -199,6 +199,17 @@ async function startRound(level) {
   nextTrial();
 }
 
+function applyLayout() {
+  $('#trial-pane').classList.toggle('half', settings.halfPad);
+  $('#btn-layout').setAttribute('aria-checked', String(settings.halfPad));
+}
+$('#btn-layout').addEventListener('click', () => {
+  settings = { ...settings, halfPad: !settings.halfPad };
+  saveSettings(settings);
+  applyLayout();
+});
+applyLayout();
+
 for (const b of $$('.modes button')) b.addEventListener('click', () => startRound(+b.dataset.level));
 $('#btn-replay').addEventListener('click', () => { if (!busy) play(); });
 $('#btn-end').addEventListener('click', endRound);
@@ -275,6 +286,7 @@ $('#settings').addEventListener('change', () => {
   let high = num(f.high.value, settings.high);
   if (high <= low) high = low + 1;
   settings = {
+    ...settings,
     a4: Math.min(480, Math.max(380, num(f.a4.value, 440))),
     low, high,
     interference: settings.interference,
