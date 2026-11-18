@@ -114,8 +114,8 @@ body.training { overflow: hidden; }
 .last.good { color: var(--good); }
 .last.bad { color: var(--bad); }
 
-/* AGAIN : 1|2 : SAME = 1 : 4 : 2 */
-.pad { flex: 1; min-height: 0; display: grid; grid-template-rows: minmax(0, 1fr) minmax(0, 4fr) minmax(0, 2fr); gap: 10px; }
+/* bottom half of the screen; AGAIN : 1|2 : SAME = 1 : 4 : 2 */
+.pad { flex: 0 0 50%; margin-top: auto; min-height: 0; display: grid; grid-template-rows: minmax(0, 1fr) minmax(0, 4fr) minmax(0, 2fr); gap: 10px; }
 /* AGAIN fills the row; the end button is a square at the right */
 .pad .again-row { display: flex; gap: 10px; min-height: 0; }
 .pad .again-row .again { flex: 1; min-width: 0; }
